@@ -1,6 +1,6 @@
 // +build cgo
 
-// Package internal provides low-level bindings to the Microsoft TPM2 simulator.
+// Package notinternal provides low-level bindings to the Microsoft TPM2 simulator.
 package internal
 
 // // Directories containing .h files in the simulator source
@@ -74,9 +74,9 @@ func RunCommand(cmd []byte) ([]byte, error) {
 	C._plat__RunCommand(C.uint32_t(len(cmd)), (*C.uint8_t)(&cmd[0]),
 		&responseSize, &responsePtr)
 	// As long as NO_FAIL_TRACE is not defined, debug error information is
-	// written to certain global variables on internal failure.
+	// written to certain global variables on notinternal failure.
 	if C.g_inFailureMode == C.TRUE {
-		return nil, errors.New("unknown internal failure")
+		return nil, errors.New("unknown notinternal failure")
 	}
 	if response != unsafe.Pointer(responsePtr) {
 		panic("Response pointer shouldn't be modified on success")

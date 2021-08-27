@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"github.com/ThalesIgnite/go-tpm-tools/client"
-	"github.com/ThalesIgnite/go-tpm-tools/internal"
-	"github.com/ThalesIgnite/go-tpm-tools/internal/test"
+	"github.com/ThalesIgnite/go-tpm-tools/notinternal"
+	"github.com/ThalesIgnite/go-tpm-tools/notinternal/test"
 	"github.com/google/go-tpm/tpm2"
 	"github.com/google/go-tpm/tpmutil"
 )
@@ -90,7 +90,7 @@ func TestVerifyHappyCases(t *testing.T) {
 			if err != nil {
 				t.Fatalf("failed to quote: %v", err)
 			}
-			err = internal.VerifyQuote(quote, ak.PublicKey(), subtest.extraData)
+			err = notinternal.VerifyQuote(quote, ak.PublicKey(), subtest.extraData)
 			if err != nil {
 				t.Fatalf("failed to verify: %v", err)
 			}
@@ -132,7 +132,7 @@ func TestVerifyPCRChanged(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to read PCRs: %v", err)
 	}
-	err = internal.VerifyQuote(quote, ak.PublicKey(), nonce)
+	err = notinternal.VerifyQuote(quote, ak.PublicKey(), nonce)
 	if err == nil {
 		t.Errorf("Verify should fail as Verify read a modified PCR")
 	}
@@ -172,7 +172,7 @@ func TestVerifyUsingDifferentPCR(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to read PCRs: %v", err)
 	}
-	err = internal.VerifyQuote(quote, ak.PublicKey(), nonce)
+	err = notinternal.VerifyQuote(quote, ak.PublicKey(), nonce)
 	if err == nil {
 		t.Errorf("Verify should fail as Verify read a different PCR")
 	}

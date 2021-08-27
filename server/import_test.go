@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/ThalesIgnite/go-tpm-tools/client"
-	"github.com/ThalesIgnite/go-tpm-tools/internal/test"
+	"github.com/ThalesIgnite/go-tpm-tools/notinternal/test"
 	pb "github.com/ThalesIgnite/go-tpm-tools/proto/tpm"
 	"github.com/google/go-tpm/tpm2"
 )

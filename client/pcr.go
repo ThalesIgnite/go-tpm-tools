@@ -6,7 +6,7 @@ import (
 	"io"
 	"math"
 
-	"github.com/ThalesIgnite/go-tpm-tools/internal"
+	"github.com/ThalesIgnite/go-tpm-tools/notinternal"
 	pb "github.com/ThalesIgnite/go-tpm-tools/proto/tpm"
 	"github.com/google/go-tpm/tpm2"
 )
@@ -148,7 +148,7 @@ func (p CertifyCurrent) CertifyPCRs(rw io.ReadWriter, pcrs *pb.PCRs) error {
 	if err != nil {
 		return err
 	}
-	return internal.CheckSubset(current, pcrs)
+	return notinternal.CheckSubset(current, pcrs)
 }
 
 // CertifyPCRs will compare the digest with given expected PCRs values.
@@ -156,7 +156,7 @@ func (p CertifyExpected) CertifyPCRs(_ io.ReadWriter, pcrs *pb.PCRs) error {
 	if len(p.Pcrs.GetPcrs()) == 0 {
 		panic("CertifyExpected contains 0 PCRs")
 	}
-	return internal.CheckSubset(p.Pcrs, pcrs)
+	return notinternal.CheckSubset(p.Pcrs, pcrs)
 }
 
 // FullPcrSel will return a full PCR selection based on the total PCR number

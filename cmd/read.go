@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/ThalesIgnite/go-tpm-tools/client"
-	"github.com/ThalesIgnite/go-tpm-tools/internal"
+	"github.com/ThalesIgnite/go-tpm-tools/notinternal"
 	"github.com/google/go-tpm/tpm2"
 	"github.com/google/go-tpm/tpmutil"
 	"github.com/spf13/cobra"
@@ -48,7 +48,7 @@ If --pcrs is not provided, all PCRs are read for that hash algorithm.`,
 			if err != nil {
 				return err
 			}
-			return internal.FormatPCRs(dataOutput(), pcrs)
+			return notinternal.FormatPCRs(dataOutput(), pcrs)
 		}
 		if len(pcrs) != 0 {
 			return errors.New("--hash-algo must be used with --pcrs")
@@ -61,7 +61,7 @@ If --pcrs is not provided, all PCRs are read for that hash algorithm.`,
 		}
 
 		for _, bank := range banks {
-			if err = internal.FormatPCRs(dataOutput(), bank); err != nil {
+			if err = notinternal.FormatPCRs(dataOutput(), bank); err != nil {
 				return err
 			}
 		}

@@ -17,7 +17,7 @@ import (
 	"github.com/google/go-tpm/tpmutil"
 
 	"github.com/ThalesIgnite/go-tpm-tools/client"
-	"github.com/ThalesIgnite/go-tpm-tools/internal"
+	"github.com/ThalesIgnite/go-tpm-tools/notinternal"
 	pb "github.com/ThalesIgnite/go-tpm-tools/proto/tpm"
 )
 
@@ -97,7 +97,7 @@ func setPublicAuth(public *tpm2.Public, pcrs *pb.PCRs) {
 		public.AuthPolicy = nil
 		public.Attributes |= tpm2.FlagUserWithAuth
 	} else {
-		public.AuthPolicy = internal.PCRSessionAuth(pcrs, client.SessionHashAlg)
+		public.AuthPolicy = notinternal.PCRSessionAuth(pcrs, client.SessionHashAlg)
 		public.Attributes |= tpm2.FlagAdminWithPolicy
 	}
 }

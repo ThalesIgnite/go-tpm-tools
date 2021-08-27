@@ -1,5 +1,5 @@
-// Package internal contains private helper functions needed in client and server
-package internal
+// Package notinternal contains private helper functions needed in client and server
+package notinternal
 
 import (
 	"bytes"

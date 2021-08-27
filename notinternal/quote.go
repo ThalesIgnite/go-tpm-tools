@@ -1,4 +1,4 @@
-package internal
+package notinternal
 
 import (
 	"bytes"
@@ -18,7 +18,7 @@ import (
 //    - the quote data starts with TPM_GENERATED_VALUE
 //    - the quote data is a valid TPMS_QUOTE_INFO
 //    - the quote data was taken over the provided PCRs
-//    - the provided PCR values match the quote data internal digest
+//    - the provided PCR values match the quote data notinternal digest
 //    - the provided extraData matches that in the quote data
 // Note that the caller must have already established trust in the provided
 // public key before validating the Quote.

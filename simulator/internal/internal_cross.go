@@ -1,6 +1,6 @@
 // +build !cgo
 
-// Package internal provides stubs when not using CGO.
+// Package notinternal provides stubs when not using CGO.
 package internal
 
 import (

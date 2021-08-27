@@ -61,7 +61,7 @@ func Get() (*Simulator, error) {
 	return simulator, nil
 }
 
-// GetWithFixedSeedInsecure behaves like Get() expect that all of the internal
+// GetWithFixedSeedInsecure behaves like Get() expect that all of the notinternal
 // hierarchy seeds are derived from the input seed. Note that this function
 // compromises the security of the keys/seeds and should only be used for tests.
 func GetWithFixedSeedInsecure(seed int64) (*Simulator, error) {

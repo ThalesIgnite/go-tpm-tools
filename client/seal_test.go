@@ -10,7 +10,7 @@ import (
 	"github.com/google/go-tpm/tpmutil"
 
 	"github.com/ThalesIgnite/go-tpm-tools/client"
-	"github.com/ThalesIgnite/go-tpm-tools/internal/test"
+	"github.com/ThalesIgnite/go-tpm-tools/notinternal/test"
 )
 
 func TestSeal(t *testing.T) {

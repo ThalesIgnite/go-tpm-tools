@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"github.com/ThalesIgnite/go-tpm-tools/client"
-	"github.com/ThalesIgnite/go-tpm-tools/internal"
-	"github.com/ThalesIgnite/go-tpm-tools/internal/test"
+	"github.com/ThalesIgnite/go-tpm-tools/notinternal"
+	"github.com/ThalesIgnite/go-tpm-tools/notinternal/test"
 	"github.com/google/go-tpm/tpm2"
 	"github.com/google/go-tpm/tpmutil"
 )
@@ -101,7 +101,7 @@ func TestCheckContainedPCRs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to read pcrs %v", err)
 	}
-	if err := internal.CheckSubset(toBeCertified, baseline); err != nil {
+	if err := notinternal.CheckSubset(toBeCertified, baseline); err != nil {
 		t.Fatalf("Validation should pass: %v", err)
 	}
 
@@ -113,7 +113,7 @@ func TestCheckContainedPCRs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to read pcrs %v", err)
 	}
-	if err := internal.CheckSubset(toBeCertified, baseline); err == nil {
+	if err := notinternal.CheckSubset(toBeCertified, baseline); err == nil {
 		t.Fatalf("validation should fail due to PCR %d changed", test.DebugPCR)
 	}
 
@@ -121,7 +121,7 @@ func TestCheckContainedPCRs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to read pcrs %v", err)
 	}
-	if err := internal.CheckSubset(toBeCertified, baseline); err != nil {
+	if err := notinternal.CheckSubset(toBeCertified, baseline); err != nil {
 		t.Fatalf("empty pcrs is always validate")
 	}
 }

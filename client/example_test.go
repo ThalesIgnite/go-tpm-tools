@@ -9,7 +9,7 @@ import (
 	"log"
 
 	"github.com/ThalesIgnite/go-tpm-tools/client"
-	"github.com/ThalesIgnite/go-tpm-tools/internal"
+	"github.com/ThalesIgnite/go-tpm-tools/notinternal"
 	"github.com/ThalesIgnite/go-tpm-tools/server"
 	"github.com/ThalesIgnite/go-tpm-tools/simulator"
 	"github.com/google/go-tpm/tpm2"
@@ -52,7 +52,7 @@ func ExampleKey_Quote() {
 
 	// On verifier, verify the quote against a stored public key/AK
 	// certificate's public part and the nonce passed.
-	if err := internal.VerifyQuote(quote, ak.PublicKey(), nonce); err != nil {
+	if err := notinternal.VerifyQuote(quote, ak.PublicKey(), nonce); err != nil {
 		// TODO: handle verify error.
 		log.Fatalf("failed to verify quote: %v", err)
 	}
@@ -128,7 +128,7 @@ func ExampleKey_Attest() {
 	// TODO: establish trust in the AK (typically via an AK certificate signed
 	// by the manufacturer).
 	for i, quote := range attestation.Quotes {
-		if err := internal.VerifyQuote(quote, attestation.AkPub, nonce); err != nil {
+		if err := notinternal.VerifyQuote(quote, attestation.AkPub, nonce); err != nil {
 			// TODO: handle verify error.
 			log.Fatalf("failed to verify quote with index %v in attestation", i)
 		}

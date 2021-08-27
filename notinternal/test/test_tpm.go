@@ -5,8 +5,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/google/go-attestation/attest"
 	"github.com/ThalesIgnite/go-tpm-tools/simulator"
+	"github.com/google/go-attestation/attest"
 	"github.com/google/go-tpm/tpm2"
 	"github.com/google/go-tpm/tpmutil"
 )
