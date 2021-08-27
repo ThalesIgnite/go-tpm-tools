@@ -234,7 +234,7 @@ func (k *Key) Seal(sensitive []byte, opts SealOpts) (*pb.SealedBytes, error) {
 		}
 	}
 	if len(pcrs.GetPcrs()) > 0 {
-		auth = internal.PCRSessionAuth(pcrs, SessionHashAlg)
+		auth = notinternal.PCRSessionAuth(pcrs, SessionHashAlg)
 	}
 	certifySel := FullPcrSel(CertifyHashAlgTpm)
 	sb, err := sealHelper(k.rw, k.Handle(), auth, sensitive, certifySel)
@@ -271,7 +271,7 @@ func sealHelper(rw io.ReadWriter, parentHandle tpmutil.Handle, auth []byte, sens
 	if err != nil {
 		return nil, fmt.Errorf("failed to read PCRs: %w", err)
 	}
-	computedDigest := internal.PCRDigest(certifiedPcr, SessionHashAlg)
+	computedDigest := notinternal.PCRDigest(certifiedPcr, SessionHashAlg)
 
 	decodedCreationData, err := tpm2.DecodeCreationData(creationData)
 	if err != nil {
@@ -347,10 +347,10 @@ func (k *Key) Unseal(in *pb.SealedBytes, opts CertifyOpts) ([]byte, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to decode creation data: %w", err)
 		}
-		if !internal.SamePCRSelection(in.GetCertifiedPcrs(), decodedCreationData.PCRSelection) {
+		if !notinternal.SamePCRSelection(in.GetCertifiedPcrs(), decodedCreationData.PCRSelection) {
 			return nil, fmt.Errorf("certify PCRs does not match the PCR selection in the creation data")
 		}
-		expectedDigest := internal.PCRDigest(in.GetCertifiedPcrs(), SessionHashAlg)
+		expectedDigest := notinternal.PCRDigest(in.GetCertifiedPcrs(), SessionHashAlg)
 		if subtle.ConstantTimeCompare(decodedCreationData.PCRDigest, expectedDigest) == 0 {
 			return nil, fmt.Errorf("certify PCRs digest does not match the digest in the creation data")
 		}
@@ -403,7 +403,7 @@ func (k *Key) Quote(selpcr tpm2.PCRSelection, extraData []byte) (*pb.Quote, erro
 	}
 	// Verify the quote client-side to make sure we didn't mess things up.
 	// NOTE: the quote still must be verified server-side as well.
-	if err := internal.VerifyQuote(quote, k.PublicKey(), extraData); err != nil {
+	if err := notinternal.VerifyQuote(quote, k.PublicKey(), extraData); err != nil {
 		return nil, fmt.Errorf("failed to verify quote: %w", err)
 	}
 	return quote, nil
