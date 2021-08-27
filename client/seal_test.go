@@ -9,8 +9,8 @@ import (
 	"github.com/google/go-tpm/tpm2"
 	"github.com/google/go-tpm/tpmutil"
 
-	"github.com/google/go-tpm-tools/client"
-	"github.com/google/go-tpm-tools/internal/test"
+	"github.com/ThalesIgnite/go-tpm-tools/client"
+	"github.com/ThalesIgnite/go-tpm-tools/internal/test"
 )
 
 func TestSeal(t *testing.T) {

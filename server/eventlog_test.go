@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/google/go-tpm-tools/client"
-	"github.com/google/go-tpm-tools/internal/test"
-	pb "github.com/google/go-tpm-tools/proto/tpm"
+	"github.com/ThalesIgnite/go-tpm-tools/client"
+	"github.com/ThalesIgnite/go-tpm-tools/internal/test"
+	pb "github.com/ThalesIgnite/go-tpm-tools/proto/tpm"
 	"github.com/google/go-tpm/tpm2"
 )
 

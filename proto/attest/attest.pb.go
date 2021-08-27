@@ -7,7 +7,7 @@
 package attest
 
 import (
-	tpm "github.com/google/go-tpm-tools/proto/tpm"
+	tpm "github.com/ThalesIgnite/go-tpm-tools/proto/tpm"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"

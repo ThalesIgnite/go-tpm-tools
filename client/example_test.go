@@ -8,10 +8,10 @@ import (
 	"io"
 	"log"
 
-	"github.com/google/go-tpm-tools/client"
-	"github.com/google/go-tpm-tools/internal"
-	"github.com/google/go-tpm-tools/server"
-	"github.com/google/go-tpm-tools/simulator"
+	"github.com/ThalesIgnite/go-tpm-tools/client"
+	"github.com/ThalesIgnite/go-tpm-tools/internal"
+	"github.com/ThalesIgnite/go-tpm-tools/server"
+	"github.com/ThalesIgnite/go-tpm-tools/simulator"
 	"github.com/google/go-tpm/tpm2"
 )
 

@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/google/go-tpm-tools/client"
+	"github.com/ThalesIgnite/go-tpm-tools/client"
 	"github.com/google/go-tpm/tpm2"
 	"github.com/spf13/cobra"
 )

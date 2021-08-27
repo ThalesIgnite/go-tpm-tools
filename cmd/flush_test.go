@@ -3,8 +3,8 @@ package cmd
 import (
 	"testing"
 
-	"github.com/google/go-tpm-tools/client"
-	"github.com/google/go-tpm-tools/internal/test"
+	"github.com/ThalesIgnite/go-tpm-tools/client"
+	"github.com/ThalesIgnite/go-tpm-tools/internal/test"
 	"github.com/google/go-tpm/tpm2"
 )
 

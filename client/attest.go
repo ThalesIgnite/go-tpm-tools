@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	pb "github.com/google/go-tpm-tools/proto/attest"
+	pb "github.com/ThalesIgnite/go-tpm-tools/proto/attest"
 )
 
 // AttestOpts allows for optional Attest functionality to be enabled.

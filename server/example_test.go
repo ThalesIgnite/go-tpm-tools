@@ -3,8 +3,8 @@ package server
 import (
 	"log"
 
-	"github.com/google/go-tpm-tools/client"
-	"github.com/google/go-tpm-tools/simulator"
+	"github.com/ThalesIgnite/go-tpm-tools/client"
+	"github.com/ThalesIgnite/go-tpm-tools/simulator"
 	"github.com/google/go-tpm/tpm2"
 )
 

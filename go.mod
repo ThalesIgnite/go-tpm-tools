@@ -1,4 +1,4 @@
-module github.com/google/go-tpm-tools
+module github.com/ThalesIgnite/go-tpm-tools
 
 go 1.16
 
