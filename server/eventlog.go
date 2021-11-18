@@ -3,9 +3,13 @@ package server
 import (
 	"errors"
 	"fmt"
+	"crypto"
+	"strconv"
+	"bytes"
 
 	"github.com/google/go-attestation/attest"
 	pb "github.com/ThalesIgnite/go-tpm-tools/proto/tpm"
+	attestpb "github.com/ThalesIgnite/go-tpm-tools/proto/attest"
 	"github.com/google/go-tpm/tpm2"
 )
 
@@ -29,6 +33,68 @@ func ParseAndVerifyEventLog(rawEventLog []byte, pcrs *pb.PCRs) ([]attest.Event, 
 	return eventLog.Verify(attestPcrs)
 }
 
+func parseReplayHelper(rawEventLog []byte, pcrs *pb.PCRs) ([]attest.Event, error) {
+	attestPcrs, err := convertToAttestPcrs(pcrs)
+	if err != nil {
+		return nil, fmt.Errorf("received bad PCR proto: %v", err)
+	}
+	eventLog, err := attest.ParseEventLog(rawEventLog)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse event log: %v", err)
+	}
+	events, err := eventLog.Verify(attestPcrs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to replay event log: %v", err)
+	}
+	return events, nil
+}
+
+func convertToPbEvents(hash crypto.Hash, events []attest.Event) []*attestpb.Event {
+	pbEvents := make([]*attestpb.Event, len(events))
+	for i, event := range events {
+		hasher := hash.New()
+		hasher.Write(event.Data)
+		digest := hasher.Sum(nil)
+
+		pbEvents[i] = &attestpb.Event{
+			PcrIndex:       uint32(event.Index),
+			UntrustedType:  uint32(event.Type),
+			Data:           event.Data,
+			Digest:         event.Digest,
+			DigestVerified: bytes.Equal(digest, event.Digest),
+		}
+	}
+	return pbEvents
+}
+
+func ParseMachineState(rawEventLog []byte, pcrs *pb.PCRs) (*attestpb.MachineState, error) {
+	events, err := parseReplayHelper(rawEventLog, pcrs)
+	if err != nil {
+		return nil, err
+	}
+	// error is already checked in convertToAttestPcrs
+	cryptoHash, _ := tpm2.Algorithm(pcrs.GetHash()).Hash()
+
+	rawEvents := convertToPbEvents(cryptoHash, events)
+	platform, err := getPlatformState(cryptoHash, rawEvents)
+	if err != nil {
+		// Eventually, we want to support a partial failure model.
+		// The MachineState can contain empty {Platform,SecureBoot}States when
+		// those individually fail parsing. The error will contain suberrors
+		// for the fields in MachineState that failed parsing.
+		//
+		// For now, since the MachineState only comprises PlatformState, we
+		// return an empty MachineState with empty platform state and the error.
+		return &attestpb.MachineState{}, err
+	}
+
+	return &attestpb.MachineState{
+		Platform:  platform,
+		RawEvents: rawEvents,
+		Hash:      pcrs.GetHash(),
+	}, nil
+}
+
 func convertToAttestPcrs(pcrProto *pb.PCRs) ([]attest.PCR, error) {
 	if len(pcrProto.GetPcrs()) == 0 {
 		return nil, errors.New("no PCRs to convert")
@@ -49,3 +115,163 @@ func convertToAttestPcrs(pcrProto *pb.PCRs) ([]attest.PCR, error) {
 	}
 	return attestPcrs, nil
 }
+
+
+func getPlatformState(hash crypto.Hash, events []*attestpb.Event) (*attestpb.PlatformState, error) {
+	// We pre-compute the separator event hash, and check if the event type has
+	// been modified. We only trust events that come before a valid separator.
+	hasher := hash.New()
+	// From the PC Client Firmware Profile spec, on the separator event:
+	// The event field MUST contain the hex value 00000000h or FFFFFFFFh.
+	separatorData := [][]byte{{0, 0, 0, 0}, {0xff, 0xff, 0xff, 0xff}}
+	separatorDigests := make([][]byte, 0, len(separatorData))
+	for _, value := range separatorData {
+		hasher.Write(value)
+		separatorDigests = append(separatorDigests, hasher.Sum(nil))
+	}
+
+	var versionString []byte
+	var nonHostInfo []byte
+	for _, event := range events {
+		index := event.GetPcrIndex()
+		if index != 0 {
+			continue
+		}
+		evtType := event.GetUntrustedType()
+
+		// Make sure we have a valid separator event, we check any event that
+		// claims to be a Separator or "looks like" a separator to prevent
+		// certain vulnerabilities in event parsing. For more info see:
+		// https://github.com/google/go-attestation/blob/master/docs/event-log-disclosure.md
+		if (evtType == Separator) || contains(separatorDigests, event.GetDigest()) {
+			if evtType != Separator {
+				return nil, fmt.Errorf("PCR%d event contains separator data but non-separator type %d", index, evtType)
+			}
+			if !event.GetDigestVerified() {
+				return nil, fmt.Errorf("unverified separator digest for PCR%d", index)
+			}
+			if !contains(separatorData, event.GetData()) {
+				return nil, fmt.Errorf("invalid separator data for PCR%d", index)
+			}
+			// Don't trust any PCR0 events after the separator
+			break
+		}
+
+		if evtType == SCRTMVersion {
+			if !event.GetDigestVerified() {
+				return nil, fmt.Errorf("invalid SCRTM version event for PCR%d", index)
+			}
+			versionString = event.GetData()
+		}
+
+		if evtType == NonhostInfo {
+			if !event.GetDigestVerified() {
+				return nil, fmt.Errorf("invalid Non-Host info event for PCR%d", index)
+			}
+			nonHostInfo = event.GetData()
+		}
+	}
+
+	state := &attestpb.PlatformState{}
+	if gceVersion, err := ConvertSCRTMVersionToGCEFirmwareVersion(versionString); err == nil {
+		state.Firmware = &attestpb.PlatformState_GceVersion{GceVersion: gceVersion}
+	} else {
+		state.Firmware = &attestpb.PlatformState_ScrtmVersionId{ScrtmVersionId: versionString}
+	}
+
+	if tech, err := ParseGCENonHostInfo(nonHostInfo); err == nil {
+		state.Technology = tech
+	}
+
+	return state, nil
+}
+
+// ConvertSCRTMVersionToGCEFirmwareVersion attempts to parse the Firmware
+// Version of a GCE VM from the bytes of the version string of the SCRTM. This
+// data should come from a valid and verified EV_S_CRTM_VERSION event.
+func ConvertSCRTMVersionToGCEFirmwareVersion(version []byte) (uint32, error) {
+	prefixLen := len(GceVirtualFirmwarePrefix)
+	if (len(version) <= prefixLen) || (len(version)%2 != 0) {
+		return 0, fmt.Errorf("length of GCE version (%d) is invalid", len(version))
+	}
+	if !bytes.Equal(version[:prefixLen], GceVirtualFirmwarePrefix) {
+		return 0, errors.New("prefix for GCE version is missing")
+	}
+	asciiVersion := []byte{}
+	for i, b := range version[prefixLen:] {
+		// Skip the UCS-2 null bytes and the null terminator
+		if b == '\x00' {
+			continue
+		}
+		// All odd bytes in our UCS-2 string should be Null
+		if i%2 != 0 {
+			return 0, errors.New("invalid UCS-2 in the version string")
+		}
+		asciiVersion = append(asciiVersion, b)
+	}
+
+	versionNum, err := strconv.Atoi(string(asciiVersion))
+	if err != nil {
+		return 0, fmt.Errorf("when parsing GCE firmware version: %w", err)
+	}
+	return uint32(versionNum), nil
+}
+
+
+
+// Expected Firmware/PCR0 Event Types.
+//
+// Taken from TCG PC Client Platform Firmware Profile Specification,
+// Table 14 Events.
+const (
+	NoAction     uint32 = 0x00000003
+	Separator    uint32 = 0x00000004
+	SCRTMVersion uint32 = 0x00000008
+	NonhostInfo  uint32 = 0x00000011
+)
+
+var (
+	// GCENonHostInfoSignature identifies the GCE Non-Host info event, which
+	// indicates if memory encryption is enabled. This event is 32-bytes consisting
+	// of the below signature (16 bytes), followed by a byte indicating whether
+	// it is confidential, followed by 15 reserved bytes.
+	GCENonHostInfoSignature = []byte("GCE NonHostInfo\x00")
+	// GceVirtualFirmwarePrefix is the little-endian UCS-2 encoded string
+	// "GCE Virtual Firmware v" without a null terminator. All GCE firmware
+	// versions are UCS-2 encoded, start with this prefix, contain the firmware
+	// version encoded as an integer, and end with a null terminator.
+	GceVirtualFirmwarePrefix = []byte{0x47, 0x00, 0x43, 0x00,
+		0x45, 0x00, 0x20, 0x00, 0x56, 0x00, 0x69, 0x00, 0x72, 0x00,
+		0x74, 0x00, 0x75, 0x00, 0x61, 0x00, 0x6c, 0x00, 0x20, 0x00,
+		0x46, 0x00, 0x69, 0x00, 0x72, 0x00, 0x6d, 0x00, 0x77, 0x00,
+		0x61, 0x00, 0x72, 0x00, 0x65, 0x00, 0x20, 0x00, 0x76, 0x00}
+)
+
+// ParseGCENonHostInfo attempts to parse the Confidential VM
+// technology used by a GCE VM from the GCE Non-Host info event. This data
+// should come from a valid and verified EV_NONHOST_INFO event.
+func ParseGCENonHostInfo(nonHostInfo []byte) (attestpb.GCEConfidentialTechnology, error) {
+	prefixLen := len(GCENonHostInfoSignature)
+	if len(nonHostInfo) < (prefixLen + 1) {
+		return attestpb.GCEConfidentialTechnology_NONE, fmt.Errorf("length of GCE Non-Host info (%d) is too short", len(nonHostInfo))
+	}
+
+	if !bytes.Equal(nonHostInfo[:prefixLen], GCENonHostInfoSignature) {
+		return attestpb.GCEConfidentialTechnology_NONE, errors.New("prefix for GCE Non-Host info is missing")
+	}
+	tech := nonHostInfo[prefixLen]
+	if tech > byte(attestpb.GCEConfidentialTechnology_AMD_SEV_ES) {
+		return attestpb.GCEConfidentialTechnology_NONE, fmt.Errorf("unknown GCE Confidential Technology: %d", tech)
+	}
+	return attestpb.GCEConfidentialTechnology(tech), nil
+}
+
+func contains(set [][]byte, value []byte) bool {
+	for _, setItem := range set {
+		if bytes.Equal(value, setItem) {
+			return true
+		}
+	}
+	return false
+}
+
